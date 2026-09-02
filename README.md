@@ -15,34 +15,39 @@ ATK Logic Toolkit 是面向正点原子 DL16、DL16 Plus、DL32 和 DL32 Plus �
 
 ## 支持的设备
 
-| 型号 | 通道 | USB | 存储深度 | 带宽 | PWM |
-|---|---:|---:|---:|---:|---:|
-| DL16 | 16 | 2.0 | 1 Gbit | 50 MHz | 2 |
-| DL16 Plus | 16 | 2.0 | 3.5 Gbit | 200 MHz | 2 |
-| DL32 | 16 | 3.0 | 3.5 Gbit | 200 MHz | 4 |
-| DL32 Plus | 32 | 3.0 | 3.5 Gbit | 200 MHz | 4 |
+| 型号 | 通道 | USB | GitHub 源码覆盖 |
+|---|---:|---:|---|
+| DL16 | 16 | 2.0 | 是；已实机验证 |
+| DL16 Plus | 16 | 2.0 | 是；待对应实机验证 |
+| DL32 | 16 | 3.0 | 否；待对应源码或实机验证 |
+| DL32 Plus | 32 | 3.0 | 否；待对应源码或实机验证 |
 
-### Buffer 采样率
+### GitHub 上位机源码确认的采样参数
 
-| 型号 | 通道数与最高采样率 |
-|---|---|
-| DL16 | 16ch：250 MHz |
-| DL16 Plus | 8ch：1 GHz；16ch：500 MHz |
-| DL32 | 8ch：1 GHz；12ch：800 MHz；16ch：500 MHz |
-| DL32 Plus | 12ch：1 GHz；15ch：800 MHz；24ch：500 MHz；30ch：400 MHz；32ch：250 MHz |
+| 模式 | DL16 | DL16 Plus |
+|---|---|---|
+| Buffer | 1–16ch：最高 250 MHz | 1–8ch：最高 1 GHz；9–16ch：最高 500 MHz |
+| Stream | 1–3ch：100 MHz；4–6ch：50 MHz；7–8ch：40 MHz；9–12ch：25 MHz；13–16ch：20 MHz | 与 DL16 相同 |
 
-DL16 已通过实机验证；其余三款已按官方资料实现，等待对应实机回归。
+这里的 Stream 档位按源码实际生成逻辑列出：采样率来自 `1/2/2.5/4/5 × 10ⁿ Hz` 序列，并要求“启用通道数 × 采样率不超过 320 MHz”。因此 8 通道实际可以选择到 40 MHz，并不是先前表格中的 25 MHz。
+
+开源仓库当前只有 `master` 分支和一次公开提交，内部全局通道数固定为 16，并且仅通过 MCU `level=0/1` 区分 DL16 与 DL16 Plus；它不包含 DL32/DL32 Plus 的界面和采样率配置。因此本项目不再把 DL32 系列采样档位标成“GitHub 源码确认”。DL16 已通过实机验证，其余型号等待对应实机回归。
 
 `atk-logic device info` 会读取官方上位机使用的两组身份数据：MCU 的 `level`，以及 FPGA 返回的名称、USB 代际和版本。名称会规范化后匹配 `DL16`、`DL16 Plus`、`DL32`、`DL32 Plus`；若 FPGA 身份包偶发超时，则从 USB 描述符读取 2.0/3.0 代际，再结合 `level` 区分普通版和 Plus。无法可靠识别时会明确报错，不会猜测型号。也可在采集时用 `--model dl16`、`--model dl16p`、`--model dl32` 或 `--model dl32p` 明确指定。只有 DL32 Plus 接受 D0–D31，并使用 16 字节触发通道掩码。
 
-### Stream 采样率（USB 3.0）
+### 源码确认的其他参数
 
-| 型号 | 通道数与最高采样率 |
+| 参数 | 源码行为 |
 |---|---|
-| DL32 | 3ch：1 GHz；6ch：500 MHz；12ch：250 MHz；16ch：125 MHz |
-| DL32 Plus | 3ch：1 GHz；6ch：500 MHz；12ch：250 MHz；16ch：125 MHz；30ch：100 MHz；32ch：50 MHz |
+| 硬件存储总深度 | DL16：1 Gbit；DL16 Plus：3.5 Gbit |
+| RLE | Buffer 模式最大时间按硬件深度的 10 倍计算 |
+| Stream 深度 | 不受硬件 Buffer 深度限制，由上位机接收能力决定 |
+| 输入阈值 | -5.0 V～+5.0 V，协议编码步进 0.1 V |
+| 触发位置 | Buffer 模式 1%～90% |
+| 触发类型 | 上升沿、高电平、下降沿、低电平、双边沿、立即采集 |
+| PWM | 2 路；1 Hz～20 MHz；占空比 1%～99%；内部基准 200 MHz |
 
-DL32 系列若降级连接到 USB 2.0，将使用官方表中的较低档位（DL32 Plus 使用 32ch 时为 10 MHz）。当前直采命令使用 Buffer 模式；Stream 参数用于后续模式实现和设备能力校验。
+对应源码位置为 `qml/session/content/SetContent.qml` 的采样率、深度和输入范围逻辑，以及 `pv/controller/session_controller.cpp` 的采集配置与 PWM 命令编码。当前直采命令使用 Buffer 模式；Stream 参数用于后续模式实现和设备能力校验。
 
 > 直采已在真实 DL16（USB 序列号 `ATK22`）验证：单/双/16 通道、1/20 MHz、普通与 RLE 有限深度采集均通过。默认不包含 Bootloader 或固件升级功能。信号发生控制命令已完成设备实测；输出端实际波形仍需接回输入或示波器后才能完成电气验证。
 

@@ -114,6 +114,11 @@ def test_model_profiles():
     assert PROFILES["dl16"].max_buffer_rate(16) == 250_000_000
     assert PROFILES["dl16p"].max_buffer_rate(8) == 1_000_000_000
     assert PROFILES["dl16p"].max_buffer_rate(16) == 500_000_000
+    assert PROFILES["dl16"].max_stream_rate(3) == 100_000_000
+    assert PROFILES["dl16"].max_stream_rate(6) == 50_000_000
+    assert PROFILES["dl16"].max_stream_rate(8) == 40_000_000
+    assert PROFILES["dl16"].max_stream_rate(12) == 25_000_000
+    assert PROFILES["dl16"].max_stream_rate(16) == 20_000_000
 
 
 def test_dl16_rejects_plus_only_rate():
