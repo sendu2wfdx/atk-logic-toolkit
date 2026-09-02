@@ -7,7 +7,7 @@ import time
 from dataclasses import dataclass
 from pathlib import Path
 
-from .device import DL16_PRODUCT_ID, DL16_VENDOR_ID
+from .device import DL16_PRODUCT_ID, DL16_VENDOR_ID, usb_backend
 
 OUT_ENDPOINT = 0x02
 IN_ENDPOINT = 0x81
@@ -124,9 +124,10 @@ class DL16:
             import usb.core
         except ImportError as exc:
             raise RuntimeError("DL16 capture requires PyUSB; install with pip install -e '.[usb]'") from exc
-        self.device = device or usb.core.find(idVendor=DL16_VENDOR_ID, idProduct=DL16_PRODUCT_ID)
+        self.device = device or usb.core.find(idVendor=DL16_VENDOR_ID, idProduct=DL16_PRODUCT_ID, backend=usb_backend())
         if self.device is None:
             raise RuntimeError("DL16 not found (expected USB 1a86:ffcc)")
+        self.last_capture_stats: dict = {}
 
     def open(self):
         try:
@@ -154,8 +155,64 @@ class DL16:
         if written != BLOCK:
             raise RuntimeError(f"short USB write: {written}/{BLOCK}")
 
+    def signal_start(self, channel: int, frequency_hz: int, duty_percent: int) -> dict:
+        if channel not in (0, 1):
+            raise ValueError("signal channel must be 0 or 1")
+        if not 1 <= frequency_hz <= 20_000_000:
+            raise ValueError("signal frequency must be between 1 Hz and 20 MHz")
+        if not 1 <= duty_percent <= 99:
+            raise ValueError("duty must be between 1 and 99 percent")
+        period_ticks = round(200_000_000 / frequency_hz)
+        high_ticks = round(period_ticks * duty_percent / 100)
+        selector = 0x21 if channel else 0x11
+        payload = bytes((selector,)) + struct.pack("<II", period_ticks, high_ticks)
+        self.send(0x17, payload)
+        return {"channel": channel, "requested_frequency_hz": frequency_hz,
+                "actual_frequency_hz": 200_000_000 / period_ticks,
+                "requested_duty_percent": duty_percent,
+                "actual_duty_percent": high_ticks / period_ticks * 100,
+                "period_ticks": period_ticks, "high_ticks": high_ticks}
+
+    def signal_stop(self, channel: int | None = None) -> None:
+        channels = (0, 1) if channel is None else (channel,)
+        if any(item not in (0, 1) for item in channels):
+            raise ValueError("signal channel must be 0, 1, or all")
+        for item in channels:
+            self.send(0x17, bytes((0x20 if item else 0x10,)))
+
+    def send_mcu(self, code: int, payload: bytes = b"") -> None:
+        """Send one of the official fixed-size MCU control messages."""
+        message = b"\x0a" + bytes((code,)) + payload
+        message += bytes(512 - len(message))
+        written = self.device.write(OUT_ENDPOINT, message, timeout=1000)
+        if written != 512:
+            raise RuntimeError(f"short MCU USB write: {written}/512")
+
+    def drain(self, max_bytes: int = 64 * 1024 * 1024) -> int:
+        """Discard endpoint data until an idle timeout, as the official client does."""
+        count = 0
+        total = 0
+        while total < max_bytes:
+            try:
+                data = self.device.read(IN_ENDPOINT, 16384, timeout=50)
+                count += 1
+                total += len(data)
+            except Exception as exc:
+                if "timed out" in str(exc).lower() or getattr(exc, "errno", None) in (60, 110):
+                    break
+                raise
+        if total >= max_bytes:
+            raise RuntimeError(f"DL16 endpoint did not become idle while draining {total} bytes")
+        return count
+
     def capture(self, config: CaptureConfig, timeout_s: float | None = None) -> dict[int, bytes]:
         config.validate()
+        self.send_mcu(0x87, b"\x01")
+        try:
+            self.device.read(IN_ENDPOINT, 512, timeout=100)
+        except Exception:
+            pass
+        self.drain()
         self.send(0x11, _configuration(config))
         time.sleep(0.03)
         self.send(0x12, _instant_trigger(config))
@@ -163,8 +220,12 @@ class DL16:
         channel_data = {channel: bytearray() for channel in config.channels}
         deadline = time.monotonic() + (timeout_s or max(5.0, config.duration_s * 4 + 2))
         complete = False
+        expected_bytes = math.ceil(config.depth / 8)
+        bytes_received = 0
+        packet_counts: dict[int, int] = {}
+        replies: list[str] = []
         try:
-            while time.monotonic() < deadline and not complete:
+            while time.monotonic() < deadline and not all(len(data) >= expected_bytes for data in channel_data.values()):
                 try:
                     chunk = bytes(self.device.read(IN_ENDPOINT, 16384, timeout=250))
                 except Exception as exc:
@@ -172,7 +233,9 @@ class DL16:
                         continue
                     raise
                 raw.extend(_deinterleave_from_device(chunk))
+                bytes_received += len(chunk)
                 for order, payload in _packets(raw):
+                    packet_counts[order] = packet_counts.get(order, 0) + 1
                     if order == 1 and len(payload) >= 2:
                         channel = payload[0]
                         if channel in channel_data:
@@ -185,13 +248,19 @@ class DL16:
                             channel_data[channel].extend(data)
                     elif order == 6:
                         complete = True
+                    elif order == 4:
+                        replies.append(payload.hex())
         finally:
             try:
                 self.send(0x15)
             except Exception:
                 pass
-        if not complete:
-            raise TimeoutError("DL16 capture did not produce a completion packet before timeout")
+        self.last_capture_stats = {"bytes_received": bytes_received, "packets": packet_counts, "replies": replies, "channel_bytes": {f"D{k}": len(v) for k, v in channel_data.items()}}
+        enough_data = all(len(data) >= expected_bytes for data in channel_data.values())
+        if not enough_data:
+            raise TimeoutError(f"DL16 capture incomplete: expected={expected_bytes} bytes/channel, complete_packet={complete}, stats={self.last_capture_stats}, buffered={len(raw)} bytes")
+        if not any(channel_data.values()):
+            raise RuntimeError(f"DL16 completed without sample data: {self.last_capture_stats}")
         return {channel: bytes(data) for channel, data in channel_data.items()}
 
 
@@ -236,4 +305,3 @@ def parse_channels(value: str) -> list[int]:
             text = text[1:]
         result.append(int(text))
     return sorted(set(result))
-

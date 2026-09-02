@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "alientek-dl16-toolkit"
-version = "0.1.0"
+version = "0.2.0"
 description = "CLI and Codex skill for evidence-based MCU waveform analysis with ALIENTEK DL16 logic analyzers"
 readme = "README.md"
 requires-python = ">=3.10"
@@ -20,7 +20,7 @@ classifiers = [
 ]
 
 [project.optional-dependencies]
-usb = ["pyusb>=1.2"]
+usb = ["pyusb>=1.2", "libusb-package>=1.0.30; sys_platform == 'win32'"]
 dev = ["pytest>=8"]
 
 [project.scripts]

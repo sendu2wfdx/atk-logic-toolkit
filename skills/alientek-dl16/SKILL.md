@@ -19,7 +19,9 @@ Default to the 16-channel DL16 unless the user names another ALIENTEK model. Use
 5. Correlate decoded frames with firmware evidence by timestamp and experiment. Separate direct observations, likely interpretations, and unverified hypotheses.
 6. Preserve the original capture and command parameters next to the report. Never silently change baud, SPI mode, polarity, bit order, or channel mapping just to obtain plausible output.
 
-The tool can directly capture from DL16 with `dl16 capture`. Its implementation follows the official GPL source, but until physical regression is recorded, label it source-verified/hardware-unverified. Do not send reset, bootloader, firmware-update, or undocumented commands through this skill.
+Use `dl16 signal start` and `dl16 signal stop` for the two onboard signal-generator outputs. Prefer `--duration` during tests so an output is automatically stopped. Do not infer output correctness from floating inputs; request an explicit loopback wire to a named D0–D15 channel before measuring frequency or duty.
+
+The tool can directly capture from DL16 with `dl16 capture`. Ordinary and RLE finite captures have been verified on physical DL16 serial `ATK22`. Do not send reset, bootloader, firmware-update, or undocumented commands through this skill.
 
 ## Conditional references
 

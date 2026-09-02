@@ -80,3 +80,28 @@ def test_human_units():
     assert parse_rate("20MHz") == 20_000_000
     assert parse_duration("10ms") == 0.01
     assert parse_channels("D15,0,D1") == [0, 1, 15]
+
+
+def test_mcu_wakeup_frame_shape():
+    class FakeDevice:
+        def __init__(self): self.value = None
+        def write(self, endpoint, value, timeout): self.value = bytes(value); return len(value)
+    from dl16_toolkit.hardware import DL16
+    fake = FakeDevice()
+    instance = object.__new__(DL16); instance.device = fake
+    instance.send_mcu(0x87, b"\x01")
+    assert len(fake.value) == 512
+    assert fake.value[:3] == b"\x0a\x87\x01"
+
+
+def test_signal_generator_command_payload():
+    from dl16_toolkit.hardware import DL16, _deinterleave_from_device
+    class FakeDevice:
+        def write(self, endpoint, value, timeout): self.value = bytes(value); return len(value)
+    fake = FakeDevice(); instance = object.__new__(DL16); instance.device = fake
+    result = instance.signal_start(1, 1_000_000, 25)
+    frame = _deinterleave_from_device(fake.value)
+    assert frame[9:12] == bytes((0x17, 10, 0x21))
+    assert int.from_bytes(frame[12:16], "little") == 200
+    assert int.from_bytes(frame[16:20], "little") == 50
+    assert result["actual_frequency_hz"] == 1_000_000

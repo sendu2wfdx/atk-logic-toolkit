@@ -22,7 +22,7 @@ def _write(value, output: str | None, markdown: bool = False) -> None:
 
 def parser() -> argparse.ArgumentParser:
     root = argparse.ArgumentParser(prog="dl16", description="Analyze ALIENTEK DL16 CSV/VCD captures for MCU firmware work")
-    root.add_argument("--version", action="version", version="%(prog)s 0.1.0")
+    root.add_argument("--version", action="version", version="%(prog)s 0.2.0")
     sub = root.add_subparsers(dest="command", required=True)
     for name in ("inspect", "analyze"):
         item = sub.add_parser(name)
@@ -47,6 +47,15 @@ def parser() -> argparse.ArgumentParser:
     capture.add_argument("--trigger-position", type=float, default=0.5)
     capture.add_argument("--rle", action="store_true")
     capture.add_argument("--timeout", type=float)
+    signal = sub.add_parser("signal", help="control the two DL16 signal-generator outputs")
+    signal_sub = signal.add_subparsers(dest="signal_action", required=True)
+    signal_start = signal_sub.add_parser("start")
+    signal_start.add_argument("--channel", type=int, choices=(0, 1), required=True)
+    signal_start.add_argument("--frequency", required=True, help="1Hz..20MHz")
+    signal_start.add_argument("--duty", type=int, default=50)
+    signal_start.add_argument("--duration", help="optional auto-stop duration, e.g. 2s")
+    signal_stop = signal_sub.add_parser("stop")
+    signal_stop.add_argument("--channel", choices=("0", "1", "all"), default="all")
     return root
 
 
@@ -64,6 +73,27 @@ def main(argv: list[str] | None = None) -> int:
             device.close()
         count = save_csv(args.out, packed, config)
         _write({"output": args.out, "samples": count, "rate_hz": config.rate_hz, "channels": [f"D{x}" for x in config.channels], "verification": "source-verified; compare first run with ATK-Logic on physical DL16"}, None)
+        return 0
+    if args.command == "signal":
+        device = DL16().open()
+        try:
+            if args.signal_action == "start":
+                result = device.signal_start(args.channel, parse_rate(args.frequency), args.duty)
+                if args.duration:
+                    import time
+                    duration = parse_duration(args.duration)
+                    if duration <= 0:
+                        raise ValueError("duration must be positive")
+                    time.sleep(duration)
+                    device.signal_stop(args.channel)
+                    result["auto_stopped_after_s"] = duration
+                _write(result, None)
+            else:
+                channel = None if args.channel == "all" else int(args.channel)
+                device.signal_stop(channel)
+                _write({"stopped": "all" if channel is None else channel}, None)
+        finally:
+            device.close()
         return 0
     capture = load_capture(args.capture)
     if args.command == "inspect":
