@@ -13,17 +13,36 @@ ATK Logic Toolkit 是面向正点原子 DL16、DL16 Plus、DL32 和 DL32 Plus �
 - 生成适合 MCU 固件分析的 Markdown 证据报告；
 - 自带 `skills/atk-logic` Codex Skill。
 
-## 支持的设备 profile
+## 支持的设备
 
-| Profile | 通道 | USB | Buffer 采样上限 | 硬件存储深度 | 测量带宽 | PWM | 状态 |
-|---|---:|---:|---|---:|---:|---:|---|
-| DL16 | 16 | 2.0 | 16ch / 250 MHz | 1 Gbit | 50 MHz | 2 | 实机验证 |
-| DL16 Plus | 16 | 2.0 | 8ch / 1 GHz；16ch / 500 MHz | 3.5 Gbit | 200 MHz | 2 | 官方资料支持，待对应实机验证 |
-| DL32 | 16 | 3.0 | 8ch / 1 GHz；12ch / 800 MHz；16ch / 500 MHz | 3.5 Gbit | 200 MHz | 4 | 官方资料支持，待对应实机验证 |
-| DL32 Plus | 32 | 3.0 | 12ch / 1 GHz；15ch / 800 MHz；24ch / 500 MHz；30ch / 400 MHz；32ch / 250 MHz | 3.5 Gbit | 200 MHz | 4 | 官方资料支持，待对应实机验证 |
+| 型号 | 通道 | USB | 存储深度 | 带宽 | PWM |
+|---|---:|---:|---:|---:|---:|
+| DL16 | 16 | 2.0 | 1 Gbit | 50 MHz | 2 |
+| DL16 Plus | 16 | 2.0 | 3.5 Gbit | 200 MHz | 2 |
+| DL32 | 16 | 3.0 | 3.5 Gbit | 200 MHz | 4 |
+| DL32 Plus | 32 | 3.0 | 3.5 Gbit | 200 MHz | 4 |
+
+### Buffer 采样率
+
+| 型号 | 通道数与最高采样率 |
+|---|---|
+| DL16 | 16ch：250 MHz |
+| DL16 Plus | 8ch：1 GHz；16ch：500 MHz |
+| DL32 | 8ch：1 GHz；12ch：800 MHz；16ch：500 MHz |
+| DL32 Plus | 12ch：1 GHz；15ch：800 MHz；24ch：500 MHz；30ch：400 MHz；32ch：250 MHz |
+
+DL16 已通过实机验证；其余三款已按官方资料实现，等待对应实机回归。
+
 `atk-logic device info` 会读取官方上位机使用的两组身份数据：MCU 的 `level`，以及 FPGA 返回的名称、USB 代际和版本。名称会规范化后匹配 `DL16`、`DL16 Plus`、`DL32`、`DL32 Plus`；若 FPGA 身份包偶发超时，则从 USB 描述符读取 2.0/3.0 代际，再结合 `level` 区分普通版和 Plus。无法可靠识别时会明确报错，不会猜测型号。也可在采集时用 `--model dl16`、`--model dl16p`、`--model dl32` 或 `--model dl32p` 明确指定。只有 DL32 Plus 接受 D0–D31，并使用 16 字节触发通道掩码。
 
-DL32 系列在 USB 3.0 下的 Stream 上限也已录入：DL32 为 3ch/1 GHz、6ch/500 MHz、12ch/250 MHz、16ch/125 MHz；DL32 Plus 另有 30ch/100 MHz、32ch/50 MHz。若降级连接到 USB 2.0，则按官方表中的较低档位限制（32ch 最低为 10 MHz）。当前直采命令使用 Buffer 模式；Stream 参数用于后续模式实现和设备能力校验。
+### Stream 采样率（USB 3.0）
+
+| 型号 | 通道数与最高采样率 |
+|---|---|
+| DL32 | 3ch：1 GHz；6ch：500 MHz；12ch：250 MHz；16ch：125 MHz |
+| DL32 Plus | 3ch：1 GHz；6ch：500 MHz；12ch：250 MHz；16ch：125 MHz；30ch：100 MHz；32ch：50 MHz |
+
+DL32 系列若降级连接到 USB 2.0，将使用官方表中的较低档位（DL32 Plus 使用 32ch 时为 10 MHz）。当前直采命令使用 Buffer 模式；Stream 参数用于后续模式实现和设备能力校验。
 
 > 直采已在真实 DL16（USB 序列号 `ATK22`）验证：单/双/16 通道、1/20 MHz、普通与 RLE 有限深度采集均通过。默认不包含 Bootloader 或固件升级功能。信号发生控制命令已完成设备实测；输出端实际波形仍需接回输入或示波器后才能完成电气验证。
 
