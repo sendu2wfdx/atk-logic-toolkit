@@ -7,7 +7,8 @@ import time
 from dataclasses import dataclass
 from pathlib import Path
 
-from .device import DL16_PRODUCT_ID, DL16_VENDOR_ID, usb_backend
+from .device import ATK_LOGIC_PRODUCT_ID, ATK_LOGIC_VENDOR_ID, usb_backend
+from .profiles import PROFILES, DeviceProfile, profile_for_level
 
 OUT_ENDPOINT = 0x02
 IN_ENDPOINT = 0x81
@@ -118,16 +119,17 @@ def _packets(buffer: bytearray):
         del buffer[:cursor]
 
 
-class DL16:
+class ATKLogicDevice:
     def __init__(self, device=None):
         try:
             import usb.core
         except ImportError as exc:
             raise RuntimeError("DL16 capture requires PyUSB; install with pip install -e '.[usb]'") from exc
-        self.device = device or usb.core.find(idVendor=DL16_VENDOR_ID, idProduct=DL16_PRODUCT_ID, backend=usb_backend())
+        self.device = device or usb.core.find(idVendor=ATK_LOGIC_VENDOR_ID, idProduct=ATK_LOGIC_PRODUCT_ID, backend=usb_backend())
         if self.device is None:
-            raise RuntimeError("DL16 not found (expected USB 1a86:ffcc)")
+            raise RuntimeError("ATK Logic analyzer not found (expected USB 1a86:ffcc)")
         self.last_capture_stats: dict = {}
+        self.device_info: dict = {}
 
     def open(self):
         try:
@@ -180,6 +182,42 @@ class DL16:
         for item in channels:
             self.send(0x17, bytes((0x20 if item else 0x10,)))
 
+    def read_device_info(self) -> dict:
+        """Read the official MCU identity response and map its model level."""
+        self.drain()
+        self.send_mcu(0x81)
+        deadline = time.monotonic() + 1.5
+        while time.monotonic() < deadline:
+            try:
+                response = bytes(self.device.read(IN_ENDPOINT, 512, timeout=200))
+            except Exception as exc:
+                if "timed out" in str(exc).lower() or getattr(exc, "errno", None) in (60, 110):
+                    continue
+                raise
+            marker = response.find(b"\x0a\x81\x01")
+            if marker >= 0 and len(response) >= marker + 9:
+                data = response[marker:]
+                level = data[8]
+                profile = profile_for_level(level)
+                self.device_info = {
+                    "profile": profile.key,
+                    "model": profile.display_name,
+                    "mcu_version": data[4] * 10 + data[5],
+                    "hardware_version": data[6],
+                    "level": level,
+                    "boot_state": data[3],
+                }
+                return self.device_info
+        self.device_info = {"profile": "generic", "model": PROFILES["generic"].display_name,
+                            "warning": "MCU identity response not received"}
+        return self.device_info
+
+    def resolve_profile(self, requested: str = "auto") -> DeviceProfile:
+        if requested != "auto":
+            return PROFILES[requested]
+        info = self.read_device_info()
+        return PROFILES[info["profile"]]
+
     def send_mcu(self, code: int, payload: bytes = b"") -> None:
         """Send one of the official fixed-size MCU control messages."""
         message = b"\x0a" + bytes((code,)) + payload
@@ -202,11 +240,14 @@ class DL16:
                     break
                 raise
         if total >= max_bytes:
-            raise RuntimeError(f"DL16 endpoint did not become idle while draining {total} bytes")
+            raise RuntimeError(f"ATK Logic endpoint did not become idle while draining {total} bytes")
         return count
 
-    def capture(self, config: CaptureConfig, timeout_s: float | None = None) -> dict[int, bytes]:
+    def capture(self, config: CaptureConfig, timeout_s: float | None = None,
+                profile: DeviceProfile | None = None) -> dict[int, bytes]:
         config.validate()
+        profile = profile or self.resolve_profile()
+        profile.validate_buffer_capture(config.rate_hz, len(config.channels))
         self.send_mcu(0x87, b"\x01")
         try:
             self.device.read(IN_ENDPOINT, 512, timeout=100)
@@ -255,13 +296,17 @@ class DL16:
                 self.send(0x15)
             except Exception:
                 pass
-        self.last_capture_stats = {"bytes_received": bytes_received, "packets": packet_counts, "replies": replies, "channel_bytes": {f"D{k}": len(v) for k, v in channel_data.items()}}
+        self.last_capture_stats = {"profile": profile.key, "bytes_received": bytes_received, "packets": packet_counts, "replies": replies, "channel_bytes": {f"D{k}": len(v) for k, v in channel_data.items()}}
         enough_data = all(len(data) >= expected_bytes for data in channel_data.values())
         if not enough_data:
-            raise TimeoutError(f"DL16 capture incomplete: expected={expected_bytes} bytes/channel, complete_packet={complete}, stats={self.last_capture_stats}, buffered={len(raw)} bytes")
+            raise TimeoutError(f"ATK Logic capture incomplete: expected={expected_bytes} bytes/channel, complete_packet={complete}, stats={self.last_capture_stats}, buffered={len(raw)} bytes")
         if not any(channel_data.values()):
-            raise RuntimeError(f"DL16 completed without sample data: {self.last_capture_stats}")
+            raise RuntimeError(f"ATK Logic device completed without sample data: {self.last_capture_stats}")
         return {channel: bytes(data) for channel, data in channel_data.items()}
+
+
+# Backward-compatible alias from versions 0.1/0.2.
+DL16 = ATKLogicDevice
 
 
 def save_csv(path: str | Path, packed: dict[int, bytes], config: CaptureConfig) -> int:

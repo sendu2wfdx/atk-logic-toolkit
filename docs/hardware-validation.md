@@ -1,4 +1,4 @@
-# DL16 hardware validation
+# ATK Logic hardware validation: DL16
 
 Date: 2026-09-02  
 Host: Windows  
@@ -10,6 +10,8 @@ Device: ALIENTEK DL16, VID:PID `1a86:ffcc`, manufacturer `ATK`, product
 | Test | Result |
 |---|---|
 | USB enumeration through bundled libusb backend | Device and descriptors found |
+| Automatic device profile | Level 0 mapped to DL16; MCU 19, hardware revision 2 |
+| Auto-profile D0/D1 capture, 1 MHz, 1 ms | DL16 selected; exactly 1,000 samples/channel |
 | FPGA wake and endpoint drain | Repeated captures start from a clean boundary |
 | D0, 1 MHz, 1 ms, ordinary mode | Exactly 1,000 samples |
 | D0/D1, 1 MHz, 1 ms, ordinary mode | Exactly 1,000 samples/channel |
@@ -32,4 +34,3 @@ Repeat at low, middle, and high frequencies before claiming full output accuracy
 
 Hardware update, bootloader entry, MCU reset, and undocumented commands are out
 of scope and were not sent.
-

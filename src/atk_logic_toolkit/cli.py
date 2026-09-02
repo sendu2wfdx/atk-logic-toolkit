@@ -2,13 +2,15 @@ from __future__ import annotations
 
 import argparse
 import json
+import sys
 from pathlib import Path
 
 from .analysis import markdown_report, summarize
 from .capture import load_capture
 from .decoders import decode_i2c, decode_spi, decode_uart
 from .device import scan
-from .hardware import CaptureConfig, DL16, parse_channels, parse_duration, parse_rate, save_csv
+from .hardware import ATKLogicDevice, CaptureConfig, parse_channels, parse_duration, parse_rate, save_csv
+from .profiles import PROFILES
 
 
 def _write(value, output: str | None, markdown: bool = False) -> None:
@@ -21,8 +23,8 @@ def _write(value, output: str | None, markdown: bool = False) -> None:
 
 
 def parser() -> argparse.ArgumentParser:
-    root = argparse.ArgumentParser(prog="dl16", description="Analyze ALIENTEK DL16 CSV/VCD captures for MCU firmware work")
-    root.add_argument("--version", action="version", version="%(prog)s 0.2.0")
+    root = argparse.ArgumentParser(prog="atk-logic", description="Capture and analyze ALIENTEK logic-analyzer waveforms for MCU firmware work")
+    root.add_argument("--version", action="version", version="%(prog)s 0.3.0")
     sub = root.add_subparsers(dest="command", required=True)
     for name in ("inspect", "analyze"):
         item = sub.add_parser(name)
@@ -37,7 +39,7 @@ def parser() -> argparse.ArgumentParser:
     spi = sub.add_parser("spi")
     spi.add_argument("capture"); spi.add_argument("--clk", required=True); spi.add_argument("--mosi"); spi.add_argument("--miso"); spi.add_argument("--cs")
     spi.add_argument("--mode", type=int, choices=range(4), default=0); spi.add_argument("--lsb-first", action="store_true"); spi.add_argument("--cs-active", type=int, choices=(0, 1), default=0); spi.add_argument("--word-bits", type=int, default=8); spi.add_argument("--out")
-    device = sub.add_parser("device"); device.add_argument("action", choices=["scan"]); device.add_argument("--out")
+    device = sub.add_parser("device"); device.add_argument("action", choices=["scan", "info"]); device.add_argument("--out")
     capture = sub.add_parser("capture", help="capture directly from a DL16 over USB")
     capture.add_argument("out")
     capture.add_argument("--channels", default="D0", help="comma-separated channels, e.g. D0,D1,D7")
@@ -47,6 +49,7 @@ def parser() -> argparse.ArgumentParser:
     capture.add_argument("--trigger-position", type=float, default=0.5)
     capture.add_argument("--rle", action="store_true")
     capture.add_argument("--timeout", type=float)
+    capture.add_argument("--model", choices=("auto", *PROFILES), default="auto")
     signal = sub.add_parser("signal", help="control the two DL16 signal-generator outputs")
     signal_sub = signal.add_subparsers(dest="signal_action", required=True)
     signal_start = signal_sub.add_parser("start")
@@ -62,20 +65,29 @@ def parser() -> argparse.ArgumentParser:
 def main(argv: list[str] | None = None) -> int:
     args = parser().parse_args(argv)
     if args.command == "device":
-        _write({"devices": scan(), "safety": "read-only descriptor scan; no control commands sent"}, args.out); return 0
+        if args.action == "scan":
+            _write({"devices": scan(), "safety": "read-only descriptor scan; no control commands sent"}, args.out)
+        else:
+            device = ATKLogicDevice().open()
+            try:
+                _write(device.read_device_info(), args.out)
+            finally:
+                device.close()
+        return 0
     if args.command == "capture":
         config = CaptureConfig(parse_channels(args.channels), parse_rate(args.rate), parse_duration(args.duration), args.threshold, args.trigger_position, args.rle)
         config.validate()
-        device = DL16().open()
+        device = ATKLogicDevice().open()
         try:
-            packed = device.capture(config, args.timeout)
+            profile = device.resolve_profile(args.model)
+            packed = device.capture(config, args.timeout, profile)
         finally:
             device.close()
         count = save_csv(args.out, packed, config)
-        _write({"output": args.out, "samples": count, "rate_hz": config.rate_hz, "channels": [f"D{x}" for x in config.channels], "verification": "source-verified; compare first run with ATK-Logic on physical DL16"}, None)
+        _write({"output": args.out, "model": profile.display_name, "profile": profile.key, "samples": count, "rate_hz": config.rate_hz, "channels": [f"D{x}" for x in config.channels]}, None)
         return 0
     if args.command == "signal":
-        device = DL16().open()
+        device = ATKLogicDevice().open()
         try:
             if args.signal_action == "start":
                 result = device.signal_start(args.channel, parse_rate(args.frequency), args.duty)
@@ -111,5 +123,16 @@ def main(argv: list[str] | None = None) -> int:
     return 0
 
 
+def entrypoint() -> int:
+    try:
+        return main()
+    except (RuntimeError, TimeoutError, ValueError, KeyError, OSError) as exc:
+        message = str(exc)
+        if "Access denied" in message or "insufficient permissions" in message:
+            message = "ATK Logic device is busy or access is denied; close ALL LOGIC/ATK-Logic and retry"
+        print(f"atk-logic: error: {message}", file=sys.stderr)
+        return 2
+
+
 if __name__ == "__main__":
-    raise SystemExit(main())
+    raise SystemExit(entrypoint())

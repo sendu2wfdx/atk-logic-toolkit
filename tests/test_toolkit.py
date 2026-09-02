@@ -1,8 +1,9 @@
 from pathlib import Path
 
-from dl16_toolkit.capture import Capture, load_csv
-from dl16_toolkit.decoders import decode_i2c, decode_spi, decode_uart
-from dl16_toolkit.hardware import CaptureConfig, _command, _configuration, _crc32_atk, _deinterleave_from_device, _interleave_for_device, parse_channels, parse_duration, parse_rate
+from atk_logic_toolkit.capture import Capture, load_csv
+from atk_logic_toolkit.decoders import decode_i2c, decode_spi, decode_uart
+from atk_logic_toolkit.hardware import CaptureConfig, _command, _configuration, _crc32_atk, _deinterleave_from_device, _interleave_for_device, parse_channels, parse_duration, parse_rate
+from atk_logic_toolkit.profiles import PROFILES, profile_for_level
 
 
 def sampled(lines, rate=1_000_000):
@@ -86,7 +87,7 @@ def test_mcu_wakeup_frame_shape():
     class FakeDevice:
         def __init__(self): self.value = None
         def write(self, endpoint, value, timeout): self.value = bytes(value); return len(value)
-    from dl16_toolkit.hardware import DL16
+    from atk_logic_toolkit.hardware import DL16
     fake = FakeDevice()
     instance = object.__new__(DL16); instance.device = fake
     instance.send_mcu(0x87, b"\x01")
@@ -95,7 +96,7 @@ def test_mcu_wakeup_frame_shape():
 
 
 def test_signal_generator_command_payload():
-    from dl16_toolkit.hardware import DL16, _deinterleave_from_device
+    from atk_logic_toolkit.hardware import DL16, _deinterleave_from_device
     class FakeDevice:
         def write(self, endpoint, value, timeout): self.value = bytes(value); return len(value)
     fake = FakeDevice(); instance = object.__new__(DL16); instance.device = fake
@@ -105,3 +106,22 @@ def test_signal_generator_command_payload():
     assert int.from_bytes(frame[12:16], "little") == 200
     assert int.from_bytes(frame[16:20], "little") == 50
     assert result["actual_frequency_hz"] == 1_000_000
+
+
+def test_model_profiles():
+    assert profile_for_level(0).key == "dl16"
+    assert profile_for_level(1).key == "dl16-plus"
+    assert PROFILES["dl16"].max_buffer_rate(16) == 250_000_000
+    assert PROFILES["dl16-plus"].max_buffer_rate(8) == 1_000_000_000
+    assert PROFILES["dl16-plus"].max_buffer_rate(16) == 500_000_000
+
+
+def test_legacy_python_namespace():
+    import dl16_toolkit.capture as legacy
+    assert legacy.Capture is Capture
+
+
+def test_dl16_rejects_plus_only_rate():
+    import pytest
+    with pytest.raises(ValueError, match="250000000"):
+        PROFILES["dl16"].validate_buffer_capture(500_000_000, 8)

@@ -1,6 +1,6 @@
-# ALIENTEK DL16 Toolkit
+# ATK Logic Toolkit
 
-面向 MCU 固件逆向与调试的正点原子逻辑分析仪辅助工具和 Codex Skill。默认设备为 **DL16（16 通道）**。
+面向 MCU 固件逆向与调试的正点原子逻辑分析仪工具和 Codex Skill。自动识别设备 profile；无法识别时保守使用 **DL16（16 通道）** 默认值。
 
 本项目支持：
 
@@ -11,7 +11,17 @@
 - 统计边沿、频率、占空比、毛刺候选、捕获时长和采样间隔；
 - 解码 UART、I²C 和 SPI，并输出 JSON；
 - 生成适合 MCU 固件分析的 Markdown 证据报告；
-- 自带 `skills/alientek-dl16` Codex Skill。
+- 自带 `skills/atk-logic` Codex Skill。
+
+## 支持的设备 profile
+
+| Profile | 通道 | Buffer 采样上限 | 状态 |
+|---|---:|---|---|
+| DL16 | 16 | 250 MHz | 实机验证 |
+| DL16 Plus | 16 | ≤8 通道 1 GHz；9–16 通道 500 MHz | 官方源码支持，待对应实机验证 |
+| Generic ATK Logic | 16 | 保守限制为 250 MHz | 未知兼容版本的回退模式 |
+
+`atk-logic device info` 根据官方 MCU 身份响应自动选择 profile。也可在采集时用 `--model dl16`、`--model dl16-plus` 或 `--model generic` 明确指定。当前公开官方产品资料列出 DL16/DL16 Plus；新增型号可通过添加 profile 扩展，不需要重写传输和解码层。
 
 > 直采已在真实 DL16（USB 序列号 `ATK22`）验证：单/双/16 通道、1/20 MHz、普通与 RLE 有限深度采集均通过。默认不包含 Bootloader 或固件升级功能。信号发生控制命令已完成设备实测；输出端实际波形仍需接回输入或示波器后才能完成电气验证。
 
@@ -26,16 +36,17 @@ python -m pip install -e ".[usb]"
 ## 快速使用
 
 ```bash
-dl16 inspect capture.csv
-dl16 analyze capture.csv --out report.md
-dl16 uart capture.csv --channel D0 --baud 115200 --out uart.json
-dl16 i2c capture.csv --scl D0 --sda D1 --out i2c.json
-dl16 spi capture.csv --clk D0 --mosi D1 --miso D2 --cs D3 --mode 0 --out spi.json
-dl16 device scan
-dl16 capture capture.csv --channels D0,D1 --rate 20MHz --duration 10ms --threshold 1.6
-dl16 signal start --channel 0 --frequency 1kHz --duty 50
-dl16 signal start --channel 1 --frequency 2MHz --duty 25 --duration 2s
-dl16 signal stop --channel all
+atk-logic device scan
+atk-logic device info
+atk-logic capture capture.csv --channels D0,D1 --rate 20MHz --duration 10ms --threshold 1.6
+atk-logic inspect capture.csv
+atk-logic analyze capture.csv --out report.md
+atk-logic uart capture.csv --channel D0 --baud 115200 --out uart.json
+atk-logic i2c capture.csv --scl D0 --sda D1 --out i2c.json
+atk-logic spi capture.csv --clk D0 --mosi D1 --miso D2 --cs D3 --mode 0 --out spi.json
+atk-logic signal start --channel 0 --frequency 1kHz --duty 50
+atk-logic signal start --channel 1 --frequency 2MHz --duty 25 --duration 2s
+atk-logic signal stop --channel all
 ```
 
 CSV 应包含时间列和数字通道列。ATK-Logic 常见头部（例如 `; Sample rate: 20 MHz`）会被保留为元数据。支持绝对采样表和仅在电平变化时记录的稀疏表。
@@ -57,7 +68,7 @@ DL16 的两路信号发生输出编号为 0 和 1，支持 1 Hz–20 MHz、1%–
 
 ## Skill 安装
 
-把 `skills/alientek-dl16` 复制到 Codex skills 目录，或直接从本仓库安装该 Skill。Skill 会调用仓库内的 `dl16` 命令，并指导接线、采样质量检查、协议解码和固件行为归因。
+把 `skills/atk-logic` 复制到 Codex skills 目录，或直接从本仓库安装该 Skill。Skill 会调用仓库内的 `atk-logic` 命令，并指导设备识别、接线、采样质量检查、协议解码和固件行为归因。
 
 ## 兼容与来源
 

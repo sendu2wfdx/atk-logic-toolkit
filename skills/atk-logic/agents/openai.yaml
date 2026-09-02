@@ -1,0 +1,4 @@
+interface:
+  display_name: "ATK Logic Analyzer"
+  short_description: "Capture and analyze ALIENTEK logic waveforms"
+  default_prompt: "Use $atk-logic to identify the analyzer, validate this capture, decode the relevant bus, and correlate activity with MCU firmware evidence."

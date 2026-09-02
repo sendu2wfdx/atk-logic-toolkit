@@ -1,7 +1,10 @@
 from __future__ import annotations
 
-DL16_VENDOR_ID = 0x1A86
-DL16_PRODUCT_ID = 0xFFCC
+ATK_LOGIC_VENDOR_ID = 0x1A86
+ATK_LOGIC_PRODUCT_ID = 0xFFCC
+# Compatibility names retained for early API users.
+DL16_VENDOR_ID = ATK_LOGIC_VENDOR_ID
+DL16_PRODUCT_ID = ATK_LOGIC_PRODUCT_ID
 
 
 def usb_backend():
@@ -18,10 +21,10 @@ def scan() -> list[dict]:
         import usb.core
         import usb.util
     except ImportError as exc:
-        raise RuntimeError("USB scan requires PyUSB; install with: pip install 'alientek-dl16-toolkit[usb]'") from exc
+        raise RuntimeError("USB scan requires PyUSB; install with: pip install 'atk-logic-toolkit[usb]'") from exc
     devices = []
-    for dev in usb.core.find(find_all=True, idVendor=DL16_VENDOR_ID, idProduct=DL16_PRODUCT_ID, backend=usb_backend()) or []:
-        item = {"model": "DL16", "vid": f"0x{dev.idVendor:04x}", "pid": f"0x{dev.idProduct:04x}", "bus": getattr(dev, "bus", None), "address": getattr(dev, "address", None)}
+    for dev in usb.core.find(find_all=True, idVendor=ATK_LOGIC_VENDOR_ID, idProduct=ATK_LOGIC_PRODUCT_ID, backend=usb_backend()) or []:
+        item = {"family": "ATK Logic", "model": "auto", "vid": f"0x{dev.idVendor:04x}", "pid": f"0x{dev.idProduct:04x}", "bus": getattr(dev, "bus", None), "address": getattr(dev, "address", None)}
         for field, index in (("manufacturer", dev.iManufacturer), ("product", dev.iProduct), ("serial", dev.iSerialNumber)):
             try:
                 item[field] = usb.util.get_string(dev, index) if index else None
