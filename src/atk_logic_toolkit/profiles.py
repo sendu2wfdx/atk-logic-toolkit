@@ -12,6 +12,8 @@ class DeviceProfile:
     verified: bool = False
 
     def max_buffer_rate(self, active_channels: int) -> int:
+        if self.key == "dl32":
+            return 1_000_000_000 if active_channels <= 12 else 250_000_000
         if self.key == "dl16-plus":
             return 1_000_000_000 if active_channels <= 8 else 500_000_000
         return 250_000_000
@@ -24,6 +26,8 @@ class DeviceProfile:
         return 20_000_000
 
     def validate_buffer_capture(self, rate_hz: int, active_channels: int) -> None:
+        if not 1 <= active_channels <= self.channels:
+            raise ValueError(f"{self.display_name} supports 1..{self.channels} active channels")
         maximum = self.max_buffer_rate(active_channels)
         if rate_hz > maximum:
             raise ValueError(
@@ -35,14 +39,20 @@ class DeviceProfile:
 PROFILES = {
     "dl16": DeviceProfile("dl16", "ALIENTEK DL16", verified=True),
     "dl16-plus": DeviceProfile("dl16-plus", "ALIENTEK DL16 Plus"),
+    "dl32": DeviceProfile("dl32", "ALIENTEK DL32 Pro", channels=32),
     "generic": DeviceProfile("generic", "ALIENTEK Logic Analyzer"),
 }
 
 
-def profile_for_level(level: int | None) -> DeviceProfile:
+def profile_for_identity(level: int | None, fpga_name: str = "") -> DeviceProfile:
+    if "DL32" in fpga_name.upper():
+        return PROFILES["dl32"]
     if level == 1:
         return PROFILES["dl16-plus"]
     if level == 0:
         return PROFILES["dl16"]
     return PROFILES["generic"]
 
+
+def profile_for_level(level: int | None) -> DeviceProfile:
+    return profile_for_identity(level)

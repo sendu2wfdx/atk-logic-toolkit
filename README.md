@@ -19,9 +19,10 @@
 |---|---:|---|---|
 | DL16 | 16 | 250 MHz | 实机验证 |
 | DL16 Plus | 16 | ≤8 通道 1 GHz；9–16 通道 500 MHz | 官方源码支持，待对应实机验证 |
+| DL32 Pro | 32 | ≤12 通道 1 GHz；13–32 通道保守限制 250 MHz | 官方规格与协议结构支持，待对应实机验证 |
 | Generic ATK Logic | 16 | 保守限制为 250 MHz | 未知兼容版本的回退模式 |
 
-`atk-logic device info` 根据官方 MCU 身份响应自动选择 profile。也可在采集时用 `--model dl16`、`--model dl16-plus` 或 `--model generic` 明确指定。当前公开官方产品资料列出 DL16/DL16 Plus；新增型号可通过添加 profile 扩展，不需要重写传输和解码层。
+`atk-logic device info` 根据 MCU 身份和 FPGA 名称自动选择 profile。也可在采集时用 `--model dl16`、`--model dl16-plus`、`--model dl32` 或 `--model generic` 明确指定。DL32 使用 16 字节触发通道掩码并接受 D0–D31；逐通道数据包和离线协议解码层与 16 通道型号共用。
 
 > 直采已在真实 DL16（USB 序列号 `ATK22`）验证：单/双/16 通道、1/20 MHz、普通与 RLE 有限深度采集均通过。默认不包含 Bootloader 或固件升级功能。信号发生控制命令已完成设备实测；输出端实际波形仍需接回输入或示波器后才能完成电气验证。
 

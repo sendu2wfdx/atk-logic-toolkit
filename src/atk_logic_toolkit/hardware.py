@@ -8,7 +8,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from .device import ATK_LOGIC_PRODUCT_ID, ATK_LOGIC_VENDOR_ID, usb_backend
-from .profiles import PROFILES, DeviceProfile, profile_for_level
+from .profiles import PROFILES, DeviceProfile, profile_for_identity
 
 OUT_ENDPOINT = 0x02
 IN_ENDPOINT = 0x81
@@ -32,8 +32,8 @@ class CaptureConfig:
         return max(1, round(self.rate_hz * self.duration_s))
 
     def validate(self) -> None:
-        if not self.channels or any(ch not in range(16) for ch in self.channels):
-            raise ValueError("channels must contain one or more values from D0 to D15")
+        if not self.channels or any(ch not in range(32) for ch in self.channels):
+            raise ValueError("channels must contain one or more values from D0 to D31")
         if self.rate_hz not in RATES:
             raise ValueError(f"unsupported rate; choose one of: {', '.join(str(x) for x in RATES)}")
         if not 0.0 <= self.trigger_position <= 1.0:
@@ -93,8 +93,8 @@ def _configuration(config: CaptureConfig) -> bytes:
     return bytes((flags, threshold, rate_index)) + _u40(config.depth) + _u40(trigger_depth)
 
 
-def _instant_trigger(config: CaptureConfig) -> bytes:
-    pairs = bytearray(8)
+def _instant_trigger(config: CaptureConfig, channel_count: int = 16) -> bytes:
+    pairs = bytearray(math.ceil(channel_count / 2))
     for ch in config.channels:
         pairs[ch // 2] |= 0xF0 if ch % 2 == 0 else 0x0F
     return bytes(pairs) + b"\x01"
@@ -198,7 +198,8 @@ class ATKLogicDevice:
             if marker >= 0 and len(response) >= marker + 9:
                 data = response[marker:]
                 level = data[8]
-                profile = profile_for_level(level)
+                fpga = self.read_fpga_info()
+                profile = profile_for_identity(level, fpga.get("fpga_name", ""))
                 self.device_info = {
                     "profile": profile.key,
                     "model": profile.display_name,
@@ -206,11 +207,41 @@ class ATKLogicDevice:
                     "hardware_version": data[6],
                     "level": level,
                     "boot_state": data[3],
+                    **fpga,
                 }
                 return self.device_info
         self.device_info = {"profile": "generic", "model": PROFILES["generic"].display_name,
                             "warning": "MCU identity response not received"}
         return self.device_info
+
+    def read_fpga_info(self) -> dict:
+        """Query the FPGA identity packet used by the official client."""
+        self.send_mcu(0x87, b"\x01")
+        try:
+            self.device.read(IN_ENDPOINT, 512, timeout=100)
+        except Exception:
+            pass
+        self.drain()
+        self.send(0x10)
+        deadline = time.monotonic() + 1.5
+        raw = bytearray()
+        while time.monotonic() < deadline:
+            try:
+                chunk = bytes(self.device.read(IN_ENDPOINT, 16384, timeout=200))
+            except Exception as exc:
+                if "timed out" in str(exc).lower() or getattr(exc, "errno", None) in (60, 110):
+                    continue
+                raise
+            raw.extend(_deinterleave_from_device(chunk))
+            for order, payload in _packets(raw):
+                if order == 2 and len(payload) >= 9:
+                    return {
+                        "usb_generation": payload[3],
+                        "fpga_version": payload[5] * 100 + payload[6],
+                        "minimum_app_version": payload[7] * 100 + payload[8],
+                        "fpga_name": payload[9:].rstrip(b"\x00").decode("utf-8", "replace"),
+                    }
+        return {"fpga_name": "", "warning_fpga": "FPGA identity response not received"}
 
     def resolve_profile(self, requested: str = "auto") -> DeviceProfile:
         if requested != "auto":
@@ -247,6 +278,8 @@ class ATKLogicDevice:
                 profile: DeviceProfile | None = None) -> dict[int, bytes]:
         config.validate()
         profile = profile or self.resolve_profile()
+        if max(config.channels) >= profile.channels:
+            raise ValueError(f"{profile.display_name} channel range is D0..D{profile.channels - 1}")
         profile.validate_buffer_capture(config.rate_hz, len(config.channels))
         self.send_mcu(0x87, b"\x01")
         try:
@@ -256,7 +289,7 @@ class ATKLogicDevice:
         self.drain()
         self.send(0x11, _configuration(config))
         time.sleep(0.03)
-        self.send(0x12, _instant_trigger(config))
+        self.send(0x12, _instant_trigger(config, profile.channels))
         raw = bytearray()
         channel_data = {channel: bytearray() for channel in config.channels}
         deadline = time.monotonic() + (timeout_s or max(5.0, config.duration_s * 4 + 2))

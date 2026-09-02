@@ -2,8 +2,8 @@ from pathlib import Path
 
 from atk_logic_toolkit.capture import Capture, load_csv
 from atk_logic_toolkit.decoders import decode_i2c, decode_spi, decode_uart
-from atk_logic_toolkit.hardware import CaptureConfig, _command, _configuration, _crc32_atk, _deinterleave_from_device, _interleave_for_device, parse_channels, parse_duration, parse_rate
-from atk_logic_toolkit.profiles import PROFILES, profile_for_level
+from atk_logic_toolkit.hardware import CaptureConfig, _command, _configuration, _crc32_atk, _deinterleave_from_device, _instant_trigger, _interleave_for_device, parse_channels, parse_duration, parse_rate
+from atk_logic_toolkit.profiles import PROFILES, profile_for_identity, profile_for_level
 
 
 def sampled(lines, rate=1_000_000):
@@ -125,3 +125,17 @@ def test_dl16_rejects_plus_only_rate():
     import pytest
     with pytest.raises(ValueError, match="250000000"):
         PROFILES["dl16"].validate_buffer_capture(500_000_000, 8)
+
+
+def test_dl32_profile_and_trigger_mask():
+    assert profile_for_identity(0, "ATK-DL32") is PROFILES["dl32"]
+    assert PROFILES["dl32"].channels == 32
+    assert PROFILES["dl32"].max_buffer_rate(12) == 1_000_000_000
+    assert PROFILES["dl32"].max_buffer_rate(32) == 250_000_000
+    config = CaptureConfig([0, 16, 31], 20_000_000, 0.001)
+    trigger = _instant_trigger(config, 32)
+    assert len(trigger) == 17
+    assert trigger[0] == 0xF0
+    assert trigger[8] == 0xF0
+    assert trigger[15] == 0x0F
+    assert trigger[-1] == 1

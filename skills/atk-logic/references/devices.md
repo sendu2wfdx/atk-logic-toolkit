@@ -17,9 +17,10 @@
 |---|---:|---|---|
 | DL16 | 16 | 250 MHz | Physical device `ATK22` |
 | DL16 Plus | 16 | 1 GHz at up to 8 channels; 500 MHz at 9–16 channels | Official source/UI, physical test pending |
+| DL32 Pro | 32 | 1 GHz at up to 12 channels; conservative 250 MHz at 13–32 channels | Official product specification and protocol-shape support, physical test pending |
 | Generic | 16 | Conservative 250 MHz | Compatibility fallback |
 
-Both named models expose two signal-generator outputs in the official client. Stream ceilings are 100 MHz for up to 3 channels, 25 MHz for 4–12, and 20 MHz for 13–16. This toolkit currently implements finite buffer capture.
+The 16-channel models expose two signal-generator outputs in the official client; DL32 promotional material also lists signal generation, but its output behavior awaits physical validation. For DL32, use D0–D31 and a 16-byte channel/trigger mask. This toolkit currently implements finite buffer capture.
 
 Finite direct capture, completion, stop, multi-channel sampling, and RLE were exercised on physical DL16 serial `ATK22` on 2026-09-02. Signal-generator commands for both outputs were accepted and auto-stop was exercised, but frequency and duty remain protocol-verified rather than electrically measured until a loopback lead or oscilloscope is attached.
 

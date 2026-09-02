@@ -10,7 +10,7 @@ Device: ALIENTEK DL16, VID:PID `1a86:ffcc`, manufacturer `ATK`, product
 | Test | Result |
 |---|---|
 | USB enumeration through bundled libusb backend | Device and descriptors found |
-| Automatic device profile | Level 0 mapped to DL16; MCU 19, hardware revision 2 |
+| Automatic device profile | Level 0 and FPGA name `DL16` mapped to DL16; MCU 19, hardware revision 2, FPGA 222 |
 | Auto-profile D0/D1 capture, 1 MHz, 1 ms | DL16 selected; exactly 1,000 samples/channel |
 | FPGA wake and endpoint drain | Repeated captures start from a clean boundary |
 | D0, 1 MHz, 1 ms, ordinary mode | Exactly 1,000 samples |
