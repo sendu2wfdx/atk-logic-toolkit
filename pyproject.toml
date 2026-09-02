@@ -1,0 +1,33 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "alientek-dl16-toolkit"
+version = "0.1.0"
+description = "CLI and Codex skill for evidence-based MCU waveform analysis with ALIENTEK DL16 logic analyzers"
+readme = "README.md"
+requires-python = ">=3.10"
+license = {text = "GPL-3.0-or-later"}
+authors = [{name = "sendu2wfdx"}]
+keywords = ["alientek", "dl16", "logic-analyzer", "mcu", "uart", "i2c", "spi"]
+classifiers = [
+  "Development Status :: 3 - Alpha",
+  "Environment :: Console",
+  "License :: OSI Approved :: GNU General Public License v3 or later (GPLv3+)",
+  "Programming Language :: Python :: 3",
+  "Topic :: System :: Hardware",
+]
+
+[project.optional-dependencies]
+usb = ["pyusb>=1.2"]
+dev = ["pytest>=8"]
+
+[project.scripts]
+dl16 = "dl16_toolkit.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

@@ -1,0 +1,4 @@
+interface:
+  display_name: "ALIENTEK DL16 Analyzer"
+  short_description: "Analyze DL16 captures and correlate MCU behavior"
+  default_prompt: "Use $alientek-dl16 to validate this capture, decode the relevant bus, and correlate observed activity with MCU firmware evidence."
