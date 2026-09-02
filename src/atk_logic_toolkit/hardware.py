@@ -201,6 +201,11 @@ class ATKLogicDevice:
                 fpga = self.read_fpga_info()
                 usb_generation = fpga.get("usb_generation") or self._descriptor_usb_generation()
                 profile = profile_for_identity(level, fpga.get("fpga_name", ""), usb_generation)
+                if profile is None:
+                    raise RuntimeError(
+                        f"unsupported ATK Logic identity: level={level}, "
+                        f"fpga_name={fpga.get('fpga_name', '')!r}, usb_generation={usb_generation}"
+                    )
                 self.device_info = {
                     "profile": profile.key,
                     "model": profile.display_name,
@@ -216,9 +221,7 @@ class ATKLogicDevice:
                     **fpga,
                 }
                 return self.device_info
-        self.device_info = {"profile": "generic", "model": PROFILES["generic"].display_name,
-                            "warning": "MCU identity response not received"}
-        return self.device_info
+        raise RuntimeError("ATK Logic MCU identity response not received; model cannot be identified safely")
 
     def _descriptor_usb_generation(self) -> int | None:
         """Use the USB descriptor when the FPGA identity packet is unavailable."""

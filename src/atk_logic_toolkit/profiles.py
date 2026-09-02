@@ -61,8 +61,6 @@ PROFILES = {
                            ((12, 1_000_000_000), (15, 800_000_000), (24, 500_000_000),
                             (30, 400_000_000), (32, 250_000_000)),
                            DL32P_STREAM_USB3, DL32P_STREAM_USB2, 4),
-    "generic": DeviceProfile("generic", "ALIENTEK Logic Analyzer", 16, 2, 1_000_000_000, 50_000_000,
-                             ((16, 250_000_000),), USB2_STREAM, USB2_STREAM, 2),
 }
 
 
@@ -70,7 +68,7 @@ def _normalized_name(fpga_name: str) -> str:
     return "".join(character for character in fpga_name.upper() if character.isalnum())
 
 
-def profile_for_identity(level: int | None, fpga_name: str = "", usb_generation: int | None = None) -> DeviceProfile:
+def profile_for_identity(level: int | None, fpga_name: str = "", usb_generation: int | None = None) -> DeviceProfile | None:
     """Map the identity fields returned by the official MCU/FPGA queries."""
     name = _normalized_name(fpga_name)
     if "DL32PLUS" in name or "DL32P" in name:
@@ -91,8 +89,8 @@ def profile_for_identity(level: int | None, fpga_name: str = "", usb_generation:
             return PROFILES["dl16p"]
         if level == 0:
             return PROFILES["dl16"]
-    return PROFILES["generic"]
+    return None
 
 
-def profile_for_level(level: int | None) -> DeviceProfile:
+def profile_for_level(level: int | None) -> DeviceProfile | None:
     return profile_for_identity(level)

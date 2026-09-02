@@ -1,11 +1,11 @@
 ---
 name: atk-logic
-description: Capture and analyze MCU firmware behavior with ALIENTEK/正点原子 logic analyzers, automatically selecting a supported device profile and defaulting conservatively to DL16. Use for device checks, capture planning, ATK-Logic CSV or VCD inspection, UART/I2C/SPI decoding, timing evidence, signal generation, and correlating bus activity with firmware code. Do not use it for firmware updates or undocumented device commands.
+description: Capture and analyze MCU firmware behavior with ALIENTEK/正点原子 logic analyzers, automatically selecting the matching DL16, DL16 Plus, DL32, or DL32 Plus device profile. Use for device checks, capture planning, ATK-Logic CSV or VCD inspection, UART/I2C/SPI decoding, timing evidence, signal generation, and correlating bus activity with firmware code. Do not use it for firmware updates or undocumented device commands.
 ---
 
 # ATK Logic MCU Analysis
 
-Use `atk-logic device info` to identify the connected model. Default conservatively to the 16-channel DL16 profile when the user names no model and automatic identification is unavailable. Use the repository's `atk-logic` CLI for deterministic parsing and decoding.
+Use `atk-logic device info` to identify the connected model. If automatic identification is unavailable, stop and report the identity fields instead of guessing a profile. Use the repository's `atk-logic` CLI for deterministic parsing and decoding.
 
 ## Workflow
 

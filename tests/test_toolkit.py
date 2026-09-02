@@ -129,6 +129,7 @@ def test_all_models_are_detected_from_fpga_identity():
     assert profile_for_identity(0, "ATK_DL32_Plus", 3) is PROFILES["dl32p"]
     assert profile_for_identity(0, "", 3) is PROFILES["dl32"]
     assert profile_for_identity(1, "", 3) is PROFILES["dl32p"]
+    assert profile_for_identity(None, "", None) is None
 
 
 def test_dl32_profiles_and_trigger_mask():

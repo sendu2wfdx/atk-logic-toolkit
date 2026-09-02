@@ -2,8 +2,8 @@
 
 ## Verified identity and supported paths
 
-- Supported profiles: ALIENTEK/正点原子 DL16, DL16 Plus, DL32, DL32 Plus, and a conservative generic ATK Logic fallback.
-- Default fallback: DL16, 16 digital channels.
+- Supported profiles: ALIENTEK/正点原子 DL16, DL16 Plus, DL32, and DL32 Plus.
+- Unknown identities are rejected instead of being assigned guessed capabilities.
 - USB identity used by the official open-source ATK-Logic application: VID `0x1a86`, PID `0xffcc`.
 - Stable input path: CSV exported by ATK-Logic.
 - Additional input path: scalar digital VCD.
@@ -19,7 +19,6 @@
 | DL16 Plus | 16 | 2.0 | 1 GHz/8ch; 500 MHz/16ch | 3.5 Gbit | 200 MHz | Official material, physical test pending |
 | DL32 | 16 | 3.0 | 1 GHz/8ch; 800 MHz/12ch; 500 MHz/16ch | 3.5 Gbit | 200 MHz | Official material, physical test pending |
 | DL32 Plus | 32 | 3.0 | 1 GHz/12ch; 800 MHz/15ch; 500 MHz/24ch; 400 MHz/30ch; 250 MHz/32ch | 3.5 Gbit | 200 MHz | Official material, physical test pending |
-| Generic | 16 | 2.0 | Conservative 250 MHz | 1 Gbit | 50 MHz | Compatibility fallback |
 
 The DL16 family exposes two signal-generator outputs. Official specifications list four PWM outputs on the DL32 family; this toolkit exposes only the first two until the additional selectors are verified on matching hardware. Only DL32 Plus uses D0–D31 and a 16-byte channel/trigger mask; DL32 itself remains a 16-channel model. This toolkit currently implements finite buffer capture.
 

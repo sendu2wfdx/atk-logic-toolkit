@@ -1,10 +1,10 @@
 # ATK Logic Toolkit
 
-面向 MCU 固件逆向与调试的正点原子逻辑分析仪工具和 Codex Skill。自动识别设备 profile；无法识别时保守使用 **DL16（16 通道）** 默认值。
+ATK Logic Toolkit 是面向正点原子 DL16、DL16 Plus、DL32 和 DL32 Plus 的命令行采集与分析工具，并附带可用于 MCU 固件调试的 Codex Skill。它能够自动识别已连接的具体型号，按对应通道数、USB 代际、采样率和存储能力执行采集，避免套用错误的硬件参数。
 
 本项目支持：
 
-- 识别 DL16 USB 设备（VID `1a86`、PID `ffcc`）；
+- 自动识别四款 ATK Logic USB 设备（VID `1a86`、PID `ffcc`）；
 - 按正点原子开源 ATK-Logic 协议直接进行 USB 有限时长采集并保存 CSV；
 - 导入 ATK-Logic 导出的 CSV，以及通用 VCD；
 - 自动识别时间列、通道列和常见时间单位；
@@ -21,9 +21,7 @@
 | DL16 Plus | 16 | 2.0 | 8ch / 1 GHz；16ch / 500 MHz | 3.5 Gbit | 200 MHz | 2 | 官方资料支持，待对应实机验证 |
 | DL32 | 16 | 3.0 | 8ch / 1 GHz；12ch / 800 MHz；16ch / 500 MHz | 3.5 Gbit | 200 MHz | 4 | 官方资料支持，待对应实机验证 |
 | DL32 Plus | 32 | 3.0 | 12ch / 1 GHz；15ch / 800 MHz；24ch / 500 MHz；30ch / 400 MHz；32ch / 250 MHz | 3.5 Gbit | 200 MHz | 4 | 官方资料支持，待对应实机验证 |
-| Generic ATK Logic | 16 | 2.0 | 保守限制为 250 MHz | 1 Gbit | 50 MHz | 2 | 未知兼容版本的回退模式 |
-
-`atk-logic device info` 会读取官方上位机使用的两组身份数据：MCU 的 `level`，以及 FPGA 返回的名称、USB 代际和版本。名称会规范化后匹配 `DL16`、`DL16 Plus`、`DL32`、`DL32 Plus`；若 FPGA 身份包偶发超时，则从 USB 描述符读取 2.0/3.0 代际，再结合 `level` 区分普通版和 Plus。也可在采集时用 `--model dl16`、`--model dl16p`、`--model dl32`、`--model dl32p` 或 `--model generic` 明确指定。只有 DL32 Plus 接受 D0–D31，并使用 16 字节触发通道掩码。
+`atk-logic device info` 会读取官方上位机使用的两组身份数据：MCU 的 `level`，以及 FPGA 返回的名称、USB 代际和版本。名称会规范化后匹配 `DL16`、`DL16 Plus`、`DL32`、`DL32 Plus`；若 FPGA 身份包偶发超时，则从 USB 描述符读取 2.0/3.0 代际，再结合 `level` 区分普通版和 Plus。无法可靠识别时会明确报错，不会猜测型号。也可在采集时用 `--model dl16`、`--model dl16p`、`--model dl32` 或 `--model dl32p` 明确指定。只有 DL32 Plus 接受 D0–D31，并使用 16 字节触发通道掩码。
 
 DL32 系列在 USB 3.0 下的 Stream 上限也已录入：DL32 为 3ch/1 GHz、6ch/500 MHz、12ch/250 MHz、16ch/125 MHz；DL32 Plus 另有 30ch/100 MHz、32ch/50 MHz。若降级连接到 USB 2.0，则按官方表中的较低档位限制（32ch 最低为 10 MHz）。当前直采命令使用 Buffer 模式；Stream 参数用于后续模式实现和设备能力校验。
 
