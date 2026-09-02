@@ -22,6 +22,8 @@
 
 The DL16 family exposes two signal-generator outputs. Official specifications list four PWM outputs on the DL32 family; this toolkit exposes only the first two until the additional selectors are verified on matching hardware. Only DL32 Plus uses D0–D31 and a 16-byte channel/trigger mask; DL32 itself remains a 16-channel model. This toolkit currently implements finite buffer capture.
 
+The community [Doukeyi-X/ALL-LOGIC](https://github.com/Doukeyi-X/ALL-LOGIC) driver independently implements the shared ATK USB framing and capture packets, but fixes `ATK_MAX_CH` and the reported channel count at 16. It is corroborating protocol evidence, not a DL32 Plus implementation. This toolkit independently extends packet channel IDs and trigger masks through D31; keep DL32-family claims marked hardware-pending until matching devices are tested.
+
 Finite direct capture, completion, stop, multi-channel sampling, and RLE were exercised on physical DL16 serial `ATK22` on 2026-09-02. Signal-generator commands for both outputs were accepted and auto-stop was exercised, but frequency and duty remain protocol-verified rather than electrically measured until a loopback lead or oscilloscope is attached.
 
 ## Wiring safety

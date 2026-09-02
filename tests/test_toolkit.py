@@ -2,7 +2,7 @@ from pathlib import Path
 
 from atk_logic_toolkit.capture import Capture, load_csv
 from atk_logic_toolkit.decoders import decode_i2c, decode_spi, decode_uart
-from atk_logic_toolkit.hardware import CaptureConfig, _command, _configuration, _crc32_atk, _deinterleave_from_device, _instant_trigger, _interleave_for_device, parse_channels, parse_duration, parse_rate
+from atk_logic_toolkit.hardware import CaptureConfig, _command, _configuration, _crc32_atk, _deinterleave_from_device, _instant_trigger, _interleave_for_device, _packets, parse_channels, parse_duration, parse_rate
 from atk_logic_toolkit.profiles import PROFILES, profile_for_identity, profile_for_level
 
 
@@ -156,3 +156,9 @@ def test_dl32_profiles_and_trigger_mask():
     assert trigger[8] == 0xF0
     assert trigger[15] == 0x0F
     assert trigger[-1] == 1
+
+
+def test_dl32p_channel_31_capture_packet_is_accepted():
+    payload = bytes((31, 0xA5, 0x5A))
+    raw = bytearray(b"\x0a\x01" + len(payload).to_bytes(2, "little") + payload + b"\x00\x0b")
+    assert list(_packets(raw)) == [(1, payload)]

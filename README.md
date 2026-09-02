@@ -33,6 +33,10 @@ ATK Logic Toolkit 是面向正点原子 DL16、DL16 Plus、DL32 和 DL32 Plus �
 
 开源仓库当前只有 `master` 分支和一次公开提交，内部全局通道数固定为 16，并且仅通过 MCU `level=0/1` 区分 DL16 与 DL16 Plus；它不包含 DL32/DL32 Plus 的界面和采样率配置。因此本项目不再把 DL32 系列采样档位标成“GitHub 源码确认”。DL16 已通过实机验证，其余型号等待对应实机回归。
 
+GitHub 上另有第三方项目 [Doukeyi-X/ALL-LOGIC](https://github.com/Doukeyi-X/ALL-LOGIC)，其中包含独立的 `libsigrok4DSL/hardware/atk-logic` 驱动。该驱动再次验证了 `1a86:ffcc`、USB 端点、2048 字节重排、命令帧、设备身份包和逐通道数据包格式，但其 `ATK_MAX_CH`、通道创建和 `SR_CONF_TOTAL_CH_NUM` 仍固定为 16，因此并未实现 DL32 Plus 的 32 通道支持。
+
+本项目的 32 系列支持是在共用协议骨架上独立扩展的：DL32 使用 D0–D15，DL32 Plus 使用 D0–D31；触发掩码随型号扩展为 8/16 字节，采集包接受通道编号 0–31，自动识别结合 FPGA 名称、USB 代际和 MCU level。由于目前没有找到可交叉验证的第三方 32 通道驱动，也没有对应实机，这两款仍标记为待硬件回归。
+
 `atk-logic device info` 会读取官方上位机使用的两组身份数据：MCU 的 `level`，以及 FPGA 返回的名称、USB 代际和版本。名称会规范化后匹配 `DL16`、`DL16 Plus`、`DL32`、`DL32 Plus`；若 FPGA 身份包偶发超时，则从 USB 描述符读取 2.0/3.0 代际，再结合 `level` 区分普通版和 Plus。无法可靠识别时会明确报错，不会猜测型号。也可在采集时用 `--model dl16`、`--model dl16p`、`--model dl32` 或 `--model dl32p` 明确指定。只有 DL32 Plus 接受 D0–D31，并使用 16 字节触发通道掩码。
 
 ### 源码确认的其他参数
