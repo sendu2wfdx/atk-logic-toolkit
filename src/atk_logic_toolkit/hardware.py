@@ -199,7 +199,8 @@ class ATKLogicDevice:
                 data = response[marker:]
                 level = data[8]
                 fpga = self.read_fpga_info()
-                profile = profile_for_identity(level, fpga.get("fpga_name", ""))
+                usb_generation = fpga.get("usb_generation") or self._descriptor_usb_generation()
+                profile = profile_for_identity(level, fpga.get("fpga_name", ""), usb_generation)
                 self.device_info = {
                     "profile": profile.key,
                     "model": profile.display_name,
@@ -207,12 +208,26 @@ class ATKLogicDevice:
                     "hardware_version": data[6],
                     "level": level,
                     "boot_state": data[3],
+                    "usb_generation": usb_generation,
+                    "channels": profile.channels,
+                    "hardware_storage_bits": profile.hardware_storage_bits,
+                    "measurement_bandwidth_hz": profile.measurement_bandwidth_hz,
+                    "signal_outputs": profile.signal_outputs,
                     **fpga,
                 }
                 return self.device_info
         self.device_info = {"profile": "generic", "model": PROFILES["generic"].display_name,
                             "warning": "MCU identity response not received"}
         return self.device_info
+
+    def _descriptor_usb_generation(self) -> int | None:
+        """Use the USB descriptor when the FPGA identity packet is unavailable."""
+        bcd_usb = getattr(self.device, "bcdUSB", 0)
+        if bcd_usb >= 0x0300:
+            return 3
+        if bcd_usb >= 0x0200:
+            return 2
+        return None
 
     def read_fpga_info(self) -> dict:
         """Query the FPGA identity packet used by the official client."""

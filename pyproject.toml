@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "atk-logic-toolkit"
-version = "0.4.1"
+version = "0.5.0"
 description = "CLI and Codex skill for MCU waveform analysis with ALIENTEK logic analyzers"
 readme = "README.md"
 requires-python = ">=3.10"

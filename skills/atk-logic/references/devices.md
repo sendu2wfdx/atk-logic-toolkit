@@ -2,25 +2,26 @@
 
 ## Verified identity and supported paths
 
-- Supported profiles: ALIENTEK/正点原子 DL16, DL16 Plus, and a conservative generic ATK Logic fallback.
+- Supported profiles: ALIENTEK/正点原子 DL16, DL16 Plus, DL32, DL32 Plus, and a conservative generic ATK Logic fallback.
 - Default fallback: DL16, 16 digital channels.
 - USB identity used by the official open-source ATK-Logic application: VID `0x1a86`, PID `0xffcc`.
 - Stable input path: CSV exported by ATK-Logic.
 - Additional input path: scalar digital VCD.
 - `atk-logic device scan` reads USB descriptors only.
-- `atk-logic device info` reads the official MCU identity response and maps device level 0 to DL16 and level 1 to DL16 Plus.
+- `atk-logic device info` reads the official MCU and FPGA identity responses. It matches the normalized FPGA model name first, then uses level 0/1 only as a USB 2.0 DL16-family fallback.
 - `atk-logic capture` implements finite buffer capture using the official endpoint, command framing, configuration fields, 2048-byte lane transform, response packet framing, per-channel data, and optional RLE behavior.
 
 ## Profiles
 
-| Profile | Channels | Buffer-mode ceiling | Validation |
-|---|---:|---|---|
-| DL16 | 16 | 250 MHz | Physical device `ATK22` |
-| DL16 Plus | 16 | 1 GHz at up to 8 channels; 500 MHz at 9–16 channels | Official source/UI, physical test pending |
-| DL32 Pro | 32 | 1 GHz at up to 12 channels; conservative 250 MHz at 13–32 channels | Official product specification and protocol-shape support, physical test pending |
-| Generic | 16 | Conservative 250 MHz | Compatibility fallback |
+| Profile | Channels | USB | Buffer-mode ceiling | Storage | Bandwidth | Validation |
+|---|---:|---:|---|---:|---:|---|
+| DL16 | 16 | 2.0 | 250 MHz at 16 channels | 1 Gbit | 50 MHz | Physical device `ATK22` |
+| DL16 Plus | 16 | 2.0 | 1 GHz/8ch; 500 MHz/16ch | 3.5 Gbit | 200 MHz | Official material, physical test pending |
+| DL32 | 16 | 3.0 | 1 GHz/8ch; 800 MHz/12ch; 500 MHz/16ch | 3.5 Gbit | 200 MHz | Official material, physical test pending |
+| DL32 Plus | 32 | 3.0 | 1 GHz/12ch; 800 MHz/15ch; 500 MHz/24ch; 400 MHz/30ch; 250 MHz/32ch | 3.5 Gbit | 200 MHz | Official material, physical test pending |
+| Generic | 16 | 2.0 | Conservative 250 MHz | 1 Gbit | 50 MHz | Compatibility fallback |
 
-The 16-channel models expose two signal-generator outputs in the official client; DL32 promotional material also lists signal generation, but its output behavior awaits physical validation. For DL32, use D0–D31 and a 16-byte channel/trigger mask. This toolkit currently implements finite buffer capture.
+The DL16 family exposes two signal-generator outputs. Official specifications list four PWM outputs on the DL32 family; this toolkit exposes only the first two until the additional selectors are verified on matching hardware. Only DL32 Plus uses D0–D31 and a 16-byte channel/trigger mask; DL32 itself remains a 16-channel model. This toolkit currently implements finite buffer capture.
 
 Finite direct capture, completion, stop, multi-channel sampling, and RLE were exercised on physical DL16 serial `ATK22` on 2026-09-02. Signal-generator commands for both outputs were accepted and auto-stop was exercised, but frequency and duty remain protocol-verified rather than electrically measured until a loopback lead or oscilloscope is attached.
 

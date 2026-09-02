@@ -110,10 +110,10 @@ def test_signal_generator_command_payload():
 
 def test_model_profiles():
     assert profile_for_level(0).key == "dl16"
-    assert profile_for_level(1).key == "dl16-plus"
+    assert profile_for_level(1).key == "dl16p"
     assert PROFILES["dl16"].max_buffer_rate(16) == 250_000_000
-    assert PROFILES["dl16-plus"].max_buffer_rate(8) == 1_000_000_000
-    assert PROFILES["dl16-plus"].max_buffer_rate(16) == 500_000_000
+    assert PROFILES["dl16p"].max_buffer_rate(8) == 1_000_000_000
+    assert PROFILES["dl16p"].max_buffer_rate(16) == 500_000_000
 
 
 def test_dl16_rejects_plus_only_rate():
@@ -122,11 +122,27 @@ def test_dl16_rejects_plus_only_rate():
         PROFILES["dl16"].validate_buffer_capture(500_000_000, 8)
 
 
-def test_dl32_profile_and_trigger_mask():
+def test_all_models_are_detected_from_fpga_identity():
+    assert profile_for_identity(0, "DL16", 2) is PROFILES["dl16"]
+    assert profile_for_identity(1, "DL16 Plus", 2) is PROFILES["dl16p"]
     assert profile_for_identity(0, "ATK-DL32") is PROFILES["dl32"]
-    assert PROFILES["dl32"].channels == 32
-    assert PROFILES["dl32"].max_buffer_rate(12) == 1_000_000_000
-    assert PROFILES["dl32"].max_buffer_rate(32) == 250_000_000
+    assert profile_for_identity(0, "ATK_DL32_Plus", 3) is PROFILES["dl32p"]
+    assert profile_for_identity(0, "", 3) is PROFILES["dl32"]
+    assert profile_for_identity(1, "", 3) is PROFILES["dl32p"]
+
+
+def test_dl32_profiles_and_trigger_mask():
+    assert PROFILES["dl32"].channels == 16
+    assert PROFILES["dl32"].max_buffer_rate(12) == 800_000_000
+    assert PROFILES["dl32"].max_stream_rate(16) == 125_000_000
+    assert PROFILES["dl32p"].channels == 32
+    assert PROFILES["dl32p"].max_buffer_rate(12) == 1_000_000_000
+    assert PROFILES["dl32p"].max_buffer_rate(15) == 800_000_000
+    assert PROFILES["dl32p"].max_buffer_rate(24) == 500_000_000
+    assert PROFILES["dl32p"].max_buffer_rate(30) == 400_000_000
+    assert PROFILES["dl32p"].max_buffer_rate(32) == 250_000_000
+    assert PROFILES["dl32p"].max_stream_rate(32, usb_generation=3) == 50_000_000
+    assert PROFILES["dl32p"].max_stream_rate(32, usb_generation=2) == 10_000_000
     config = CaptureConfig([0, 16, 31], 20_000_000, 0.001)
     trigger = _instant_trigger(config, 32)
     assert len(trigger) == 17

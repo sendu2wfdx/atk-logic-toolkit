@@ -21,7 +21,7 @@ Use `atk-logic device info` to identify the connected model. Default conservativ
 
 Use `atk-logic signal start` and `atk-logic signal stop` for the two onboard signal-generator outputs. Prefer `--duration` during tests so an output is automatically stopped. Do not infer output correctness from floating inputs; request an explicit loopback wire to a named D0–D15 channel before measuring frequency or duty.
 
-The tool can directly capture from supported devices with `atk-logic capture`. Ordinary and RLE finite captures have been verified on physical DL16 serial `ATK22`. DL16 Plus and 32-channel DL32 Pro have separate channel/rate profiles and await corresponding physical regression. Do not send reset, bootloader, firmware-update, or undocumented commands through this skill.
+The tool can directly capture from supported devices with `atk-logic capture`. Ordinary and RLE finite captures have been verified on physical DL16 serial `ATK22`. DL16, DL16 Plus, DL32 (16 channels), and DL32 Plus (32 channels) have separate USB/rate/storage profiles; only DL16 has physical regression so far. Do not send reset, bootloader, firmware-update, or undocumented commands through this skill.
 
 ## Conditional references
 

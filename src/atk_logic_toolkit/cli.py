@@ -24,7 +24,7 @@ def _write(value, output: str | None, markdown: bool = False) -> None:
 
 def parser() -> argparse.ArgumentParser:
     root = argparse.ArgumentParser(prog="atk-logic", description="Capture and analyze ALIENTEK logic-analyzer waveforms for MCU firmware work")
-    root.add_argument("--version", action="version", version="%(prog)s 0.4.1")
+    root.add_argument("--version", action="version", version="%(prog)s 0.5.0")
     sub = root.add_subparsers(dest="command", required=True)
     for name in ("inspect", "analyze"):
         item = sub.add_parser(name)
