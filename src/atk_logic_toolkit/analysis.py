@@ -63,7 +63,7 @@ def markdown_report(capture: Capture, source_name: str) -> str:
     result = summarize(capture)
     rate = result["estimated_sample_rate_hz"]
     lines = [
-        "# DL16 MCU 波形分析报告", "", "## 捕获概况", "",
+        "# ATK Logic MCU 波形分析报告", "", "## 捕获概况", "",
         f"- 来源：`{source_name}`", f"- 样本数：{result['samples']}",
         f"- 捕获时长：{result['duration_s']:.9g} s",
         f"- 估算采样率：{rate:.9g} Hz" if rate else "- 估算采样率：稀疏边沿数据，无法可靠估算",
@@ -84,4 +84,3 @@ def markdown_report(capture: Capture, source_name: str) -> str:
         "3. 对无法解释的帧重复采集，并一次只改变一个输入条件。",
     ]
     return "\n".join(lines) + "\n"
-

@@ -24,7 +24,7 @@ def _write(value, output: str | None, markdown: bool = False) -> None:
 
 def parser() -> argparse.ArgumentParser:
     root = argparse.ArgumentParser(prog="atk-logic", description="Capture and analyze ALIENTEK logic-analyzer waveforms for MCU firmware work")
-    root.add_argument("--version", action="version", version="%(prog)s 0.4.0")
+    root.add_argument("--version", action="version", version="%(prog)s 0.4.1")
     sub = root.add_subparsers(dest="command", required=True)
     for name in ("inspect", "analyze"):
         item = sub.add_parser(name)
@@ -40,7 +40,7 @@ def parser() -> argparse.ArgumentParser:
     spi.add_argument("capture"); spi.add_argument("--clk", required=True); spi.add_argument("--mosi"); spi.add_argument("--miso"); spi.add_argument("--cs")
     spi.add_argument("--mode", type=int, choices=range(4), default=0); spi.add_argument("--lsb-first", action="store_true"); spi.add_argument("--cs-active", type=int, choices=(0, 1), default=0); spi.add_argument("--word-bits", type=int, default=8); spi.add_argument("--out")
     device = sub.add_parser("device"); device.add_argument("action", choices=["scan", "info"]); device.add_argument("--out")
-    capture = sub.add_parser("capture", help="capture directly from a DL16 over USB")
+    capture = sub.add_parser("capture", help="capture directly from an ATK Logic analyzer over USB")
     capture.add_argument("out")
     capture.add_argument("--channels", default="D0", help="comma-separated channels, e.g. D0,D1,D7")
     capture.add_argument("--rate", default="20MHz")
@@ -50,7 +50,7 @@ def parser() -> argparse.ArgumentParser:
     capture.add_argument("--rle", action="store_true")
     capture.add_argument("--timeout", type=float)
     capture.add_argument("--model", choices=("auto", *PROFILES), default="auto")
-    signal = sub.add_parser("signal", help="control the two DL16 signal-generator outputs")
+    signal = sub.add_parser("signal", help="control the analyzer's two signal-generator outputs")
     signal_sub = signal.add_subparsers(dest="signal_action", required=True)
     signal_start = signal_sub.add_parser("start")
     signal_start.add_argument("--channel", type=int, choices=(0, 1), required=True)

@@ -2,9 +2,6 @@ from __future__ import annotations
 
 ATK_LOGIC_VENDOR_ID = 0x1A86
 ATK_LOGIC_PRODUCT_ID = 0xFFCC
-# Compatibility names retained for early API users.
-DL16_VENDOR_ID = ATK_LOGIC_VENDOR_ID
-DL16_PRODUCT_ID = ATK_LOGIC_PRODUCT_ID
 
 
 def usb_backend():

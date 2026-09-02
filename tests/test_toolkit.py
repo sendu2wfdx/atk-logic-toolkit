@@ -87,19 +87,19 @@ def test_mcu_wakeup_frame_shape():
     class FakeDevice:
         def __init__(self): self.value = None
         def write(self, endpoint, value, timeout): self.value = bytes(value); return len(value)
-    from atk_logic_toolkit.hardware import DL16
+    from atk_logic_toolkit.hardware import ATKLogicDevice
     fake = FakeDevice()
-    instance = object.__new__(DL16); instance.device = fake
+    instance = object.__new__(ATKLogicDevice); instance.device = fake
     instance.send_mcu(0x87, b"\x01")
     assert len(fake.value) == 512
     assert fake.value[:3] == b"\x0a\x87\x01"
 
 
 def test_signal_generator_command_payload():
-    from atk_logic_toolkit.hardware import DL16, _deinterleave_from_device
+    from atk_logic_toolkit.hardware import ATKLogicDevice, _deinterleave_from_device
     class FakeDevice:
         def write(self, endpoint, value, timeout): self.value = bytes(value); return len(value)
-    fake = FakeDevice(); instance = object.__new__(DL16); instance.device = fake
+    fake = FakeDevice(); instance = object.__new__(ATKLogicDevice); instance.device = fake
     result = instance.signal_start(1, 1_000_000, 25)
     frame = _deinterleave_from_device(fake.value)
     assert frame[9:12] == bytes((0x17, 10, 0x21))
@@ -114,11 +114,6 @@ def test_model_profiles():
     assert PROFILES["dl16"].max_buffer_rate(16) == 250_000_000
     assert PROFILES["dl16-plus"].max_buffer_rate(8) == 1_000_000_000
     assert PROFILES["dl16-plus"].max_buffer_rate(16) == 500_000_000
-
-
-def test_legacy_python_namespace():
-    import dl16_toolkit.capture as legacy
-    assert legacy.Capture is Capture
 
 
 def test_dl16_rejects_plus_only_rate():

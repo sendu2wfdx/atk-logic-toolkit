@@ -124,7 +124,7 @@ class ATKLogicDevice:
         try:
             import usb.core
         except ImportError as exc:
-            raise RuntimeError("DL16 capture requires PyUSB; install with pip install -e '.[usb]'") from exc
+            raise RuntimeError("ATK Logic capture requires PyUSB; install with pip install -e '.[usb]'") from exc
         self.device = device or usb.core.find(idVendor=ATK_LOGIC_VENDOR_ID, idProduct=ATK_LOGIC_PRODUCT_ID, backend=usb_backend())
         if self.device is None:
             raise RuntimeError("ATK Logic analyzer not found (expected USB 1a86:ffcc)")
@@ -336,12 +336,6 @@ class ATKLogicDevice:
         if not any(channel_data.values()):
             raise RuntimeError(f"ATK Logic device completed without sample data: {self.last_capture_stats}")
         return {channel: bytes(data) for channel, data in channel_data.items()}
-
-
-# Backward-compatible alias from versions 0.1/0.2.
-DL16 = ATKLogicDevice
-
-
 def save_csv(path: str | Path, packed: dict[int, bytes], config: CaptureConfig) -> int:
     available = min((len(data) * 8 for data in packed.values()), default=0)
     count = min(config.depth, available)

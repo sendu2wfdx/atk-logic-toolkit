@@ -5,7 +5,7 @@ description: Capture and analyze MCU firmware behavior with ALIENTEK/正点原�
 
 # ATK Logic MCU Analysis
 
-Use `atk-logic device info` to identify the connected model. Default conservatively to the 16-channel DL16 profile when the user names no model and automatic identification is unavailable. Use the repository's `atk-logic` CLI for deterministic parsing and decoding; `dl16` is only a compatibility alias.
+Use `atk-logic device info` to identify the connected model. Default conservatively to the 16-channel DL16 profile when the user names no model and automatic identification is unavailable. Use the repository's `atk-logic` CLI for deterministic parsing and decoding.
 
 ## Workflow
 
