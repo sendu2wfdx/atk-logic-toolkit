@@ -24,7 +24,7 @@ The DL16 family exposes two signal-generator outputs. Official specifications li
 
 The community [Doukeyi-X/ALL-LOGIC](https://github.com/Doukeyi-X/ALL-LOGIC) driver independently implements the shared ATK USB framing and capture packets, but fixes `ATK_MAX_CH` and the reported channel count at 16. It is corroborating protocol evidence, not a DL32 Plus implementation. This toolkit independently extends packet channel IDs and trigger masks through D31; keep DL32-family claims marked hardware-pending until matching devices are tested.
 
-Finite direct capture, completion, stop, multi-channel sampling, and RLE were exercised on physical DL16 serial `ATK22` on 2026-09-02. Signal-generator commands for both outputs were accepted and auto-stop was exercised, but frequency and duty remain protocol-verified rather than electrically measured until a loopback lead or oscilloscope is attached.
+Finite direct capture, completion, stop, multi-channel sampling, and RLE were exercised on physical DL16 serial `ATK22`. On 2026-09-03, PWM0→D0 and PWM1→D1 were captured together at 20 MHz: requested 100 kHz/25% and 250 kHz/60% measured exactly, with no glitch candidates. Endpoint behavior across the full 1 Hz–20 MHz range remains to be characterized.
 
 ## Wiring safety
 

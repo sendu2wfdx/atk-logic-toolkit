@@ -53,7 +53,7 @@ GitHub 上另有第三方项目 [Doukeyi-X/ALL-LOGIC](https://github.com/Doukeyi
 
 对应源码位置为 `qml/session/content/SetContent.qml` 的采样率、深度和输入范围逻辑，以及 `pv/controller/session_controller.cpp` 的采集配置与 PWM 命令编码。当前直采命令使用 Buffer 模式；Stream 参数用于后续模式实现和设备能力校验。
 
-> 直采已在真实 DL16（USB 序列号 `ATK22`）验证：单/双/16 通道、1/20 MHz、普通与 RLE 有限深度采集均通过。默认不包含 Bootloader 或固件升级功能。信号发生控制命令已完成设备实测；输出端实际波形仍需接回输入或示波器后才能完成电气验证。
+> 直采已在真实 DL16（USB 序列号 `ATK22`）验证：单/双/16 通道、1/20 MHz、普通与 RLE 有限深度采集均通过。PWM0→D0、PWM1→D1 回环也已完成电气验证：100 kHz / 25% 与 250 kHz / 60% 均被准确采回，未发现毛刺候选。默认不包含 Bootloader 或固件升级功能。
 
 ## 安装
 
